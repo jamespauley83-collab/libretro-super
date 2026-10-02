@@ -13,7 +13,7 @@ export default function App() {
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
-  const [selectedCore, setSelectedCore] = useState(null)
+  const [selectedCoreId, setSelectedCoreId] = useState(null)
   const [tab, setTab] = useState('cores')
 
   const fetchCores = useCallback(async () => {
@@ -86,13 +86,13 @@ export default function App() {
           <CoreGrid
             cores={cores}
             loading={loading}
-            onSelect={setSelectedCore}
+            onSelect={setSelectedCoreId}
           />
 
-          {selectedCore && (
+          {selectedCoreId && (
             <CoreDetail
-              corename={selectedCore}
-              onClose={() => setSelectedCore(null)}
+              coreId={selectedCoreId}
+              onClose={() => setSelectedCoreId(null)}
             />
           )}
         </>

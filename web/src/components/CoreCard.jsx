@@ -3,9 +3,9 @@ export default function CoreCard({ core, onSelect }) {
   const badgeClass = isEmulator ? 'badge badge-emulator' : 'badge badge-game'
 
   return (
-    <div className="core-card" onClick={() => onSelect(core.corename)}>
+    <div className="core-card" onClick={() => onSelect(core.id)}>
       <div className="core-card-header">
-        <span className="core-name">{core.display_name || core.corename}</span>
+        <span className="core-name">{core.display_name || core.corename || core.id}</span>
         <span className={badgeClass}>{core.categories || 'Unknown'}</span>
       </div>
       {core.systemname && core.systemname !== core.display_name && (

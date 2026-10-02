@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react'
 
-export default function CoreDetail({ corename, onClose }) {
+export default function CoreDetail({ coreId, onClose }) {
   const [core, setCore] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`/api/cores/${corename}`)
+    fetch(`/api/cores/${encodeURIComponent(coreId)}`)
       .then(res => res.json())
       .then(data => {
         setCore(data)
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [corename])
+  }, [coreId])
 
   if (loading) return <div className="modal-overlay"><div className="modal">Loading…</div></div>
   if (!core) return null
@@ -36,7 +36,7 @@ export default function CoreDetail({ corename, onClose }) {
         <button className="modal-close" onClick={onClose}>✕</button>
 
         <div className="modal-header">
-          <h2>{core.display_name || core.corename}</h2>
+          <h2>{core.display_name || core.corename || core.id}</h2>
           <span className={`badge ${core.categories === 'Emulator' ? 'badge-emulator' : 'badge-game'}`}>
             {core.categories || 'Unknown'}
           </span>

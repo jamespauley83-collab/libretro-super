@@ -41,5 +41,7 @@ function parseInfoFile(content, filename) {
     core[key] = value
   }
 
+  // Recipe names come from filenames, not optional/non-unique display names.
+  core.id = filename.replace(/(?:_libretro)?\.info$/, '')
   return core
 }

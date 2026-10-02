@@ -12,7 +12,7 @@ export default function CoreGrid({ cores, loading, onSelect }) {
   return (
     <div className="core-grid">
       {cores.map(core => (
-        <CoreCard key={core.corename} core={core} onSelect={onSelect} />
+        <CoreCard key={core.id} core={core} onSelect={onSelect} />
       ))}
     </div>
   )

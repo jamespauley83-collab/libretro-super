@@ -25,7 +25,7 @@ Single container runs both Vite and Express via `concurrently`.
 
 ### API endpoints
 - `GET /api/cores?search=&category=` — list/filter cores
-- `GET /api/cores/:name` — single core detail + build recipes
+- `GET /api/cores/:id` — single core detail + build recipes, using the filename-derived `id` returned by the list endpoint (for example, `fbneo`)
 - `GET /api/recipes` — all build recipes grouped by platform
 - `GET /api/stats` — summary statistics
 
@@ -33,3 +33,11 @@ Single container runs both Vite and Express via `concurrently`.
 - Some `.info` files lack a `corename` field; the sort handles this
 - Recipe files are identified by having no file extension (skip .conf, .ra)
 - The `REPO_ROOT` env var (default: `/repo`) points to the repo root for file parsing
+- Core `id` removes the trailing `_libretro.info` (or `.info`) from the metadata filename. Use it for selection, React keys, detail lookup, and recipe matching; retain `corename` and `display_name` for display.
+
+### Dashboard checks (without Docker)
+From `web/`, run `npm ci`, `npm test`, and `npm run build`.
+For browser regressions, run `npx playwright install chromium`, then `npm run test:e2e`.
+An existing Chromium binary can be used with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/path/to/chromium`.
+The browser tests start the API and Vite on ports 3001 and 3000; those ports must be free.
+The API also accepts `PORT` (default: 3001); API tests use a temporary port.

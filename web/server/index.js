@@ -55,9 +55,9 @@ app.get('/api/cores', (req, res) => {
   })
 })
 
-app.get('/api/cores/:name', (req, res) => {
+app.get('/api/cores/:id', (req, res) => {
   const cores = getCores()
-  const core = cores.find(c => c.corename === req.params.name)
+  const core = cores.find(c => c.id === req.params.id)
   if (!core) return res.status(404).json({ error: 'Core not found' })
 
   // Find build recipes for this core
@@ -65,7 +65,7 @@ app.get('/api/cores/:name', (req, res) => {
   const buildRecipes = []
   for (const [platform, files] of Object.entries(recipes)) {
     for (const file of files) {
-      const match = file.cores.find(c => c.corename === core.corename)
+      const match = file.cores.find(c => c.corename === core.id)
       if (match) {
         buildRecipes.push({ platform, file: file.name, recipe: match })
       }
@@ -113,7 +113,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', cores: getCores().length })
 })
 
-const PORT = 3001
-app.listen(PORT, () => {
-  console.log(`API server running on port ${PORT}`)
+const PORT = Number(process.env.PORT || 3001)
+const server = app.listen(PORT, () => {
+  console.log(`API server running on port ${server.address().port}`)
 })
