@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 async function openCore(page, core) {
   const name = core.display_name || core.corename || core.id
-  const card = page.locator('.core-card').filter({ has: page.getByText(name, { exact: true }) })
+  const card = page.locator('.core-card').filter({ has: page.locator('.core-name').getByText(name, { exact: true }) })
   const responsePromise = page.waitForResponse(response =>
     new URL(response.url()).pathname === `/api/cores/${encodeURIComponent(core.id)}`
   )
@@ -38,9 +38,11 @@ test('duplicate core names select their own details repeatedly without duplicate
   const { cores } = await (await request.get('/api/cores')).json()
   const stable = cores.find(core => core.id === 'mupen64plus_next')
   const develop = cores.find(core => core.id === 'mupen64plus_next_develop')
+  const { cores: matches } = await (await request.get('/api/cores?search=Mupen64Plus-Next')).json()
+  expect(matches.map(core => core.id)).toEqual(expect.arrayContaining([stable.id, develop.id]))
   await page.goto('/')
   await page.locator('.search-input').fill('Mupen64Plus-Next')
-  await expect(page.locator('.core-card')).toHaveCount(2)
+  await expect(page.locator('.core-card')).toHaveCount(matches.length)
   for (const core of [stable, develop, stable, develop]) {
     const detail = await openCore(page, core)
     expect(detail.is_experimental).toBe(core.is_experimental)
