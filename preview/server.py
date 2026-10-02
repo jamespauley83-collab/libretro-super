@@ -39,7 +39,12 @@ def parse_info(path):
                 continue
             m = re.match(r'^([a-zA-Z0-9_]+)\s*=\s*(.*)$', line)
             if m:
-                data[m.group(1)] = m.group(2).strip()
+                val = m.group(2).strip()
+                # .info files wrap values in double quotes; strip them so
+                # comparisons (opt == "true") and display render correctly.
+                if len(val) >= 2 and val[0] == '"' and val[-1] == '"':
+                    val = val[1:-1]
+                data[m.group(1)] = val
     return data
 
 
