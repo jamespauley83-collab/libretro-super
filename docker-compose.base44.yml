@@ -1,0 +1,24 @@
+services:
+  web:
+    image: node:22
+    working_dir: /app/web
+    volumes:
+      - .:/repo
+      - ./web:/app/web
+      - web_node_modules:/app/web/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - REPO_ROOT=/repo
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+    command: ["sh", "-ec", "npm install && npx concurrently \"npm run server\" \"npm run dev\""]
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r=>{if(!r.ok)throw 1}).catch(()=>{throw 1})"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  web_node_modules:
