@@ -55,9 +55,13 @@ async function getJson(route) {
 }
 
 function expectedRecipes(id) {
+  const normalizedId = id.toLowerCase()
   return Object.entries(recipes).flatMap(([platform, files]) =>
     files.flatMap(file => {
-      const recipe = file.cores.find(row => row.corename === id)
+      const recipe = file.cores.find(row => {
+        const ids = [row.corename, ...(row.multiTargets?.match(/\S+(?=:)/g) || [])]
+        return ids.some(candidate => candidate.toLowerCase() === normalizedId)
+      })
       return recipe ? [{ platform, file: file.name, recipe }] : []
     })
   )
@@ -89,6 +93,47 @@ test('FinalBurn Neo recipes use fbneo rather than the human-facing corename', as
   assert.ok(detail.buildRecipes.length > 0)
   assert.ok(detail.buildRecipes.every(row => row.recipe.corename === 'fbneo'))
   assert.deepEqual(detail.buildRecipes, expectedRecipes('fbneo'))
+})
+
+test('generated target IDs include their parent build recipes', async () => {
+  for (const [id, parent, count] of [
+    ['bsnes2014_accuracy', 'bsnes2014', 10],
+    ['mess2015', 'mame2015', 10],
+    ['emux_nes', 'emux', 4],
+  ]) {
+    const detail = await getJson(`/api/cores/${id}`)
+    assert.equal(detail.buildRecipes.length, count, id)
+    assert.ok(detail.buildRecipes.every(row => row.recipe.corename === parent))
+    assert.deepEqual(detail.buildRecipes, expectedRecipes(id))
+  }
+  // A parent listed among its own targets must appear only once per recipe file.
+  const parent = await getJson('/api/cores/mame2015')
+  assert.equal(new Set(parent.buildRecipes.map(row => `${row.platform}/${row.file}`)).size,
+    parent.buildRecipes.length)
+})
+
+test('mixed-case filename IDs match lowercase recipes without changing the detail ID', async () => {
+  const detail = await getJson('/api/cores/DoubleCherryGB')
+  assert.equal(detail.id, 'DoubleCherryGB')
+  assert.equal(detail.buildRecipes.length, 31)
+  assert.ok(detail.buildRecipes.every(row => row.recipe.corename === 'doublecherrygb'))
+})
+
+test('templates and notices are excluded from lists, details, health and statistics', async () => {
+  const listed = await getJson('/api/cores')
+  assert.equal(listed.total, 329)
+  assert.equal(listed.filtered, 329)
+  for (const id of ['00_example', 'open-source-notices']) {
+    assert.ok(!cores.some(core => core.id === id))
+    assert.ok(!listed.cores.some(core => core.id === id))
+    assert.equal((await fetch(`${baseUrl}/api/cores/${id}`)).status, 404)
+  }
+  const stats = await getJson('/api/stats')
+  assert.equal(stats.totalCores, 329)
+  for (const counts of [stats.categories, stats.systems, stats.licenses]) {
+    assert.equal(Object.values(counts).reduce((sum, count) => sum + count, 0), 329)
+  }
+  assert.equal((await getJson('/api/health')).cores, 329)
 })
 
 test('metadata without corename is addressable, including Anarch and RVVM', async () => {

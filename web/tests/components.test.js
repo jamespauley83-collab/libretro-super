@@ -78,3 +78,77 @@ test('real app selects, fetches, renders and reopens missing-name and duplicate-
     await act(async () => { renderer.unmount() })
   }
 })
+
+for (const control of ['search', 'category']) {
+  for (const staleOutcome of ['success', 'failure']) {
+    test(`${control} ignores stale ${staleOutcome} after the latest results`, async () => {
+      const previousFetch = globalThis.fetch
+      const pending = []
+      globalThis.fetch = url => {
+        if (url === '/api/stats') return previousFetch(url)
+        return new Promise((resolve, reject) => { pending.push({ url, resolve, reject }) })
+      }
+      let renderer
+      const latest = cores.find(core => core.id === 'anarch')
+      try {
+        await act(async () => { renderer = TestRenderer.create(React.createElement(App)) })
+        await act(async () => {
+          renderer.root.findByProps({ className: control === 'search' ? 'search-input' : 'category-select' })
+            .props.onChange({ target: { value: control === 'search' ? 'Anarch' : 'Game' } })
+        })
+        assert.equal(pending.length, 2)
+        assert.ok(pending[1].url.includes(control === 'search' ? 'search=Anarch' : 'category=Game'))
+        await act(async () => {
+          pending[1].resolve({ ok: true, json: async () => ({ cores: [latest], total: 329 }) })
+        })
+        await act(async () => {
+          if (staleOutcome === 'success') {
+            pending[0].resolve({ ok: true, json: async () => ({ cores, total: 999 }) })
+          } else {
+            pending[0].reject(new Error('Obsolete request failed'))
+          }
+        })
+        assert.deepEqual(renderer.root.findByType(CoreGrid).props.cores, [latest])
+        assert.equal(renderer.root.findByType(CoreGrid).props.loading, false)
+        assert.equal(renderer.root.findAllByProps({ className: 'error' }).length, 0)
+        assert.equal(renderer.root.findAllByType('option').find(option => option.props.value === '').children.join(''),
+          'All categories (329)')
+      } finally {
+        await act(async () => { renderer?.unmount() })
+        globalThis.fetch = previousFetch
+      }
+    })
+  }
+}
+
+test('stale completion keeps the latest query loading and a new query clears old errors', async () => {
+  const previousFetch = globalThis.fetch
+  const pending = []
+  globalThis.fetch = url => url === '/api/stats' ? previousFetch(url)
+    : new Promise((resolve, reject) => { pending.push({ resolve, reject }) })
+  let renderer
+  try {
+    await act(async () => { renderer = TestRenderer.create(React.createElement(App)) })
+    const changeSearch = value => act(async () => {
+      renderer.root.findByProps({ className: 'search-input' }).props.onChange({ target: { value } })
+    })
+    await changeSearch('Anarch')
+    await act(async () => { pending[0].reject(new Error('Obsolete failure')) })
+    assert.equal(renderer.root.findByType(CoreGrid).props.loading, true)
+    assert.equal(renderer.root.findAllByProps({ className: 'error' }).length, 0)
+    await act(async () => { pending[1].reject(new Error('Current failure')) })
+    assert.equal(renderer.root.findByType(CoreGrid).props.loading, false)
+    assert.match(renderer.root.findByProps({ className: 'error' }).children.join(''), /Current failure/)
+    await changeSearch('FinalBurn Neo')
+    assert.equal(renderer.root.findAllByProps({ className: 'error' }).length, 0)
+    assert.equal(renderer.root.findByType(CoreGrid).props.loading, true)
+    const fbneo = cores.find(core => core.id === 'fbneo')
+    await act(async () => {
+      pending[2].resolve({ ok: true, json: async () => ({ cores: [fbneo], total: 329 }) })
+    })
+    assert.deepEqual(renderer.root.findByType(CoreGrid).props.cores, [fbneo])
+  } finally {
+    await act(async () => { renderer?.unmount() })
+    globalThis.fetch = previousFetch
+  }
+})

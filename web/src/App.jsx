@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Header from './components/Header.jsx'
 import StatsBar from './components/StatsBar.jsx'
 import CoreGrid from './components/CoreGrid.jsx'
@@ -16,27 +16,31 @@ export default function App() {
   const [selectedCoreId, setSelectedCoreId] = useState(null)
   const [tab, setTab] = useState('cores')
 
-  const fetchCores = useCallback(async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (search) params.set('search', search)
-      if (category) params.set('category', category)
-      const res = await fetch(`/api/cores?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch cores')
-      const data = await res.json()
-      setCores(data.cores)
-      setTotalCores(data.total)
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [search, category])
-
   useEffect(() => {
+    let current = true
+    async function fetchCores() {
+      setLoading(true)
+      setError(null)
+      try {
+        const params = new URLSearchParams()
+        if (search) params.set('search', search)
+        if (category) params.set('category', category)
+        const res = await fetch(`/api/cores?${params}`)
+        if (!res.ok) throw new Error('Failed to fetch cores')
+        const data = await res.json()
+        if (current) {
+          setCores(data.cores)
+          setTotalCores(data.total)
+        }
+      } catch (e) {
+        if (current) setError(e.message)
+      } finally {
+        if (current) setLoading(false)
+      }
+    }
     fetchCores()
-  }, [fetchCores])
+    return () => { current = false }
+  }, [search, category])
 
   useEffect(() => {
     fetch('/api/stats')

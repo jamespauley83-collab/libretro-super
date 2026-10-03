@@ -3,7 +3,9 @@ import path from 'path'
 
 export function readCores(repoRoot) {
   const infoDir = path.join(repoRoot, 'dist', 'info')
-  const files = fs.readdirSync(infoDir).filter(f => f.endsWith('.info'))
+  const files = fs.readdirSync(infoDir).filter(f =>
+    f.endsWith('_libretro.info') && f !== '00_example_libretro.info'
+  )
   const cores = []
 
   for (const file of files) {

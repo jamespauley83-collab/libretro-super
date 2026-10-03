@@ -63,9 +63,13 @@ app.get('/api/cores/:id', (req, res) => {
   // Find build recipes for this core
   const recipes = getRecipes()
   const buildRecipes = []
+  const coreId = core.id.toLowerCase()
   for (const [platform, files] of Object.entries(recipes)) {
     for (const file of files) {
-      const match = file.cores.find(c => c.corename === core.id)
+      const match = file.cores.find(c =>
+        c.corename.toLowerCase() === coreId ||
+        c.multiTargets?.split(/\s+/).some(target => target.split(':')[0].toLowerCase() === coreId)
+      )
       if (match) {
         buildRecipes.push({ platform, file: file.name, recipe: match })
       }
